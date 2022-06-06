@@ -1,0 +1,74 @@
+SON BUI
+SPERRY MARINE INC
+4/21/93		% Revised on 6/22/93  F:APNXX\PLD\PAL_PROM\  %
+EP610		% Revised on 10/24/96 by W.Waldron to ground pin6 and pin7 %
+	
+APN-XX WX_STC PLD-PROM DESIGN:  PAL.ADF
+
+OPTIONS:  SECURITY = OFF, TURBO = ON
+PART:  EP610
+
+% This PLD contains three main section.  The first section is basically   %
+% a 10-bit binary up counter using T flip-flops architecture.             %
+% The T flip-flops have active high CLEAR pin.  The 10 bit binary up      %
+% counter (Q0-Q9) outputs are interfaced to the addresses of the EPROM.   %
+% The 2nd section is a combinatorial circuit which controls the clocking  %
+% action of the 10 bit binary up-counter.  When Q0-Q9 equals decimal 1022 %
+% (signifying the end of the weather calibration range) the 10 bit binary %
+% counter stops at that value.                                            %
+% The 3rd section is basically an inverter.  This inverter is used in     %
+% conjunction with the WX_STC_ON signal (which enables/disables the       %
+% oscillatory clock signal.                                               %
+
+INPUTS:   CLOCK@1, TRIG@2,     % Part of 10-bit binary up counter ckt.    %
+	  RC_CK_IN@3,          % Part of clock control combinatorial ckt. %
+	  COMPL@14             % Part of inverter.                        %
+
+OUTPUTS:  Q0@10, Q1@9, Q2@15, Q3@16, Q4@17, Q5@18, Q6@19, Q7@20, Q8@21, Q9@22,
+	  TIME@4, NEGATE@5, PIN6@6, PIN7@7 
+
+NETWORK:
+     CK  = INP(CLOCK)  % Clock signal for flip-flops Q0-Q9.         %
+     CLR = INP(TRIG)   % Asynchronous clear (active hi) for Q0-Q9.  %
+     RCCK = INP(RC_CK_IN)
+     COMPL = INP(COMPL)
+
+     % 10-bit binary up-counter uses T flip-flop architecture.      %
+     Q0, A = TOTF(Q0i, CK, CLR, GND, VCC)   % LSB. %
+     Q1, B = TOTF(Q1i, CK, CLR, GND, VCC)
+     Q2, C = TOTF(Q2i, CK, CLR, GND, VCC)
+     Q3, D = TOTF(Q3i, CK, CLR, GND, VCC)
+     Q4, E = TOTF(Q4i, CK, CLR, GND, VCC)
+     Q5, F = TOTF(Q5i, CK, CLR, GND, VCC)
+     Q6, G = TOTF(Q6i, CK, CLR, GND, VCC)   % Q0-Q9 T flip-flops have     %
+     Q7, H = TOTF(Q7i, CK, CLR, GND, VCC)   % asynchronous CLR (active-hi)%
+     Q8, I = TOTF(Q8i, CK, CLR, GND, VCC)   % function.                   %
+     Q9, J = TOTF(Q9i, CK, CLR, GND, VCC)
+
+     TIME = CONF(TIMEi, VCC)
+     NEGATE = CONF(NEGi, VCC)
+     PIN6 = CONF(GND, VCC) 
+     PIN7 = CONF(GND, VCC) 
+
+EQUATIONS:
+     % Address Generator:  Conditions to count up from zero to 1022.   %
+     Q0i = VCC;                % LSB %
+     Q1i = A;
+     Q2i = A*B;
+     Q3i = A*B*C;
+     Q4i = A*B*C*D;
+     Q5i = A*B*C*D*E;
+     Q6i = A*B*C*D*E*F;
+     Q7i = A*B*C*D*E*F*G;
+     Q8i = A*B*C*D*E*F*G*H;
+     Q9i = A*B*C*D*E*F*G*H*I;    % MSB %
+
+     % Conditions to stop clock of Q0 - Q9.                    %
+     %   CK_OUT := Logic 0 if (Q9-Q0) := decimal 1022          %
+     %   Note that 1022 := (J*I*H*G*F*E*D*C*B*/A)              %
+     %   Thus, CK_OUTi := CLK*(1022)'  or                      %
+     TIMEi = RCCK*(/J+/I+/H+/G+/F+/E+/D+/C+/B+A);
+
+     NEGi = /COMPL;
+
+END$
